@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model pricing {
+  id_pricing   Int      @id @default(autoincrement())
+  service_type String   @db.VarChar(100)
+  unit_price   Decimal  @db.Decimal(10, 2)
+  quantity     Int
+  total_price  Decimal? @db.Decimal(10, 2)
+}
+
+model projects {
+  id_projects Int       @id @default(autoincrement())
+  title       String    @db.VarChar(100)
+  description String?   @db.Text
+  image_url   String?   @db.VarChar(255)
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+}
+
+model reviews {
+  id_reviews    Int           @id @default(autoincrement())
+  user_id       Int
+  comment       String        @db.Text
+  rating        Int?          @default(5)
+  likes         Int?          @default(0)
+  user_accounts user_accounts @relation(fields: [user_id], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "fk_user")
+
+  @@index([user_id], map: "userid")
+}
+
+model user_accounts {
+  ID              Int               @id @default(autoincrement())
+  Username        String            @db.VarChar(255)
+  Email           String            @db.VarChar(255)
+  Password        String            @db.VarChar(255)
+  First_name      String?           @db.VarChar(100)
+  Last_name       String?           @db.VarChar(100)
+  created_at      DateTime?         @default(now()) @db.Timestamp(0)
+  isAdmin         Boolean?          @default(false)
+  messages        messages[]
+  reviews         reviews[]
+  service_history service_history[]
+}
+
+model schedule {
+  id_schedule      Int             @id @default(autoincrement())
+  appointment_date DateTime        @db.Date
+  status           schedule_status
+  note             String          @db.Text
+  created_at       DateTime?       @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?       @default(now()) @db.Timestamp(0)
+  appointment_time String?         @db.VarChar(5)
+}
+
+model chatbot {
+  id       Int     @id @default(autoincrement())
+  keyword  String? @db.VarChar(255)
+  response String? @db.Text
+}
+
+model service_history {
+  id                Int                     @id @default(autoincrement())
+  user_id           Int?
+  service_name      String?                 @db.VarChar(255)
+  appointment_date  DateTime?               @db.Date
+  status            service_history_status?
+  warranty_end_date DateTime?               @db.Date
+  amount_charged    Float                   @db.Float
+  created_at        DateTime?               @default(now()) @db.Timestamp(0)
+  updated_at        DateTime?               @default(now()) @db.Timestamp(0)
+  location          String?                 @db.VarChar(255)
+  user_accounts     user_accounts?          @relation(fields: [user_id], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "service_history_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model messages {
+  id            Int           @id @default(autoincrement())
+  roomId        Int
+  sender        String        @db.VarChar(255)
+  message       String        @db.Text
+  timestamp     DateTime?     @default(now()) @db.Timestamp(0)
+  user_accounts user_accounts @relation(fields: [roomId], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "messages_ibfk_1")
+
+  @@index([roomId], map: "roomId")
+}
+
+enum schedule_status {
+  available
+  unavailable
+}
+
+enum service_history_status {
+  pending
+  completed
+  canceled
+}

@@ -1,0 +1,125 @@
+<template>
+  <div class="chat-container">
+    <ul id="messages">
+      <li v-for="(message, index) in messages" :key="index" :class="{ 'admin': message.sender === 'admin', 'user': message.sender === 'user' }">
+        {{ message.sender }}: {{ message.text }}
+      </li>
+    </ul>
+    <form id="form" @submit.prevent="sendMessage">
+      <input v-model="input" id="input" autocomplete="off" placeholder="Type a message..." />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</template>
+
+<script>
+import io from 'socket.io-client';
+
+export default {
+  data() {
+    return {
+      messages: [],
+      input: '',
+      socket: null,
+      roomId: 'admin', // ห้องที่แอดมินเข้าร่วม
+    };
+  },
+  mounted() {
+    this.socket = io('http://localhost:8081');
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (currentUser && currentUser.isAdmin) {
+      this.socket.emit('joinRoom', this.roomId); // แอดมินเข้าร่วมห้อง admin
+    }
+
+    this.socket.on('chatMessage', (message) => {
+      this.messages.push({
+        text: message.message,
+        sender: message.sender
+      });
+    });
+  },
+  methods: {
+    sendMessage() {
+      if (this.input.trim() !== '') {
+        const messageData = {
+          message: this.input,
+          sender: 'admin', // กำหนดผู้ส่งเป็น 'admin'
+          roomId: this.roomId // ส่งข้อมูลห้องที่ถูกต้อง
+        };
+        this.socket.emit('chatMessage', messageData);
+        this.input = ''; // ล้างข้อความหลังจากส่ง
+      }
+    }
+  }
+};
+</script>
+
+<style scoped>
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 600px;
+  margin: auto;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f8f8f8;
+}
+
+#messages {
+  list-style-type: none;
+  margin: 0;
+  padding: 1rem;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+#messages > li {
+  padding: 0.5rem;
+  border-radius: 5px;
+  margin-bottom: 0.5rem;
+}
+
+#messages > li.admin {
+  background-color: #e1f7d5;
+  align-self: flex-start;
+}
+
+#messages > li.user {
+  background-color: #d1e7ff;
+  align-self: flex-end;
+}
+
+#form {
+  background: rgba(0, 0, 0, 0.15);
+  padding: 0.5rem;
+  display: flex;
+}
+
+#input {
+  border: none;
+  padding: 0.5rem;
+  flex-grow: 1;
+  border-radius: 5px;
+  margin-right: 0.5rem;
+}
+
+#input:focus {
+  outline: none;
+}
+
+#form > button {
+  background: #007bff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+}
+
+#form > button:hover {
+  background: #0056b3;
+}
+</style>
